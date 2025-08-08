@@ -22,12 +22,15 @@ import java.util.List;
  */
 public class ViewDebugger {
     private static final String TAG = "ViewDebugger";
+    private static final boolean SEARCH_NON_VIEW_GROUP = true;
 
     @NonNull
     private final IDebugView mDebugView;
     private boolean mEnabled;
     @NonNull
     private final List<View> mViewsAtCursor = new ArrayList<>();
+    @NonNull
+    private final List<Point> mPointOffsetViewGroup = new ArrayList<>();
     private boolean mIsShowingCurrentView = false;
     private int mIndexOfShowingViews;
     private boolean mIsShowingFocusedView = false;
@@ -242,7 +245,11 @@ public class ViewDebugger {
 
     private void showViewAtCursor() {
         if (!mIsShowingCurrentView) {
-            getAllViewsAtPoint(mDebugView.getCursorLocation());
+            if (SEARCH_NON_VIEW_GROUP) {
+                getAllViewsAtPoint2(mDebugView.getCursorLocation());
+            } else {
+                getAllViewsAtPoint(mDebugView.getCursorLocation());
+            }
             dumpViewsAtCursor();
 
             if (!mViewsAtCursor.isEmpty()) {
@@ -356,6 +363,8 @@ public class ViewDebugger {
             int childCount = nextViewGroup.getChildCount();
             View viewFound = null;
 
+            // 没有设置elevation属性的话, View的绘制顺序是按照添加到ViewGroup的顺序来决定的.
+            // 第一个子View是最先绘制的, 最后一个子View最后绘制, 最后一个子View在图层的最上面.
             for (int i = childCount-1; i >= 0; i--) {
                 View child = nextViewGroup.getChildAt(i);
                 if (child == null || child instanceof IDebugView) continue;
@@ -374,6 +383,74 @@ public class ViewDebugger {
                 break;
             }
         }
+    }
+
+    // 这个方法和上面的getAllViewsAtPoint()方法区别是: 搜索到的最下层View不能是ViewGroup, 否则要继续搜索和该View同一级的下一个子View.
+    private void getAllViewsAtPoint2(@NonNull Point pointScreen) {
+        // mDebugView放在View Tree的最上一层，因此其parent View一定是root view
+        ViewParent viewParent = mDebugView.getView().getParent();
+        if (viewParent == null) {
+            return;
+        }
+
+        ViewGroup rootView = (ViewGroup) viewParent;
+        ViewGroup nextViewGroup = rootView;
+        mViewsAtCursor.clear();
+        mPointOffsetViewGroup.clear();
+
+        Point pointOffsetViewGroup = pointScreen;
+        int startChildIndex = nextViewGroup.getChildCount() - 1;
+        while (true) {
+            View viewFound = null;
+
+            // 如果没有设置elevation属性, View的绘制顺序是按照添加到ViewGroup的顺序来决定的.
+            // 第一个子View是最先绘制的, 最后一个子View最后绘制, 最后一个子View在图层的最上面.
+            for (int i = startChildIndex; i >= 0; i--) {
+                View child = nextViewGroup.getChildAt(i);
+                if (child == null || child instanceof IDebugView) continue;
+
+                if (child.getVisibility()==View.VISIBLE && isPointInView(pointOffsetViewGroup, nextViewGroup, child)) {
+                    mViewsAtCursor.add(child);
+                    mPointOffsetViewGroup.add(new Point(pointOffsetViewGroup));
+                    viewFound = child;
+                    break;
+                }
+            }
+
+            if (viewFound != null && viewFound instanceof ViewGroup) {
+                transformPointToViewLocal(pointOffsetViewGroup, nextViewGroup, viewFound);
+                nextViewGroup = (ViewGroup) viewFound;
+                startChildIndex = nextViewGroup.getChildCount() - 1;
+            } else if (viewFound == null) {
+                int viewCount = mViewsAtCursor.size();
+                if (viewCount >= 2) {
+                    nextViewGroup = (ViewGroup) mViewsAtCursor.get(viewCount - 2);
+                    startChildIndex = findNextChildViewIndex(mViewsAtCursor.get(viewCount - 1), nextViewGroup);
+                    Log.w(TAG, "!! Try next child view of " + nextViewGroup + ", startChildIndex=" + startChildIndex);
+                    if (startChildIndex < 0) {
+                        break;
+                    }
+                    mViewsAtCursor.remove(viewCount - 1);
+                    pointOffsetViewGroup = new Point(mPointOffsetViewGroup.remove(viewCount - 1));
+                }
+            } else {
+                // 已找到非ViewGroup的View, 停止搜索
+                break;
+            }
+        }
+    }
+
+    private int findNextChildViewIndex(View currentChildView, ViewGroup parentView) {
+        int childIndex = -1;
+
+        for (int i = parentView.getChildCount() - 1; i >= 0; i--) {
+            if (parentView.getChildAt(i) == currentChildView) {
+                childIndex = i - 1;
+                break;
+            }
+        }
+
+        return childIndex;
     }
 
     private void transformPointToViewLocal(@NonNull Point point, @NonNull View parent, @NonNull View child) {
