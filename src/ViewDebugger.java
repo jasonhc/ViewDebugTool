@@ -39,8 +39,8 @@ public class ViewDebugger {
     private int[] mSecretKeyCodes_1 = {KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN,
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_CHANNEL_UP};
     @NonNull
-    private int[] mSecretKeyCodes_2 = {KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_5,
-            KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_1};
+    private int[] mSecretKeyCodes_2 = {KeyEvent.KEYCODE_9, KeyEvent.KEYCODE_5,
+            KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_7};
     @Nullable
     private int[] mCurrentActiveSecretKeyCodes;
     private int mSecretKeyIndex = 0;
