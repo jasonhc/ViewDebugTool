@@ -19,5 +19,5 @@
 代码在project tv-deskplatform, branch view-debug-tool/view-debug-tool-dev
 
 # 使用方法:
-依次按"2-5-9-1"启动该工具.
+依次按"9-5-2-7"启动该工具.
 按方向键移动光标, 按1-6改变光标移动步长(数字越大移动步长越大), 按0让光标回到屏幕中心位置. 按确定键显示光标处的View, 第一次按确定显示子View, 再次按确定显示该View的父View.
