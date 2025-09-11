@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class DebugToolView extends View implements IDebugView {
-    private static final int CURSOR_TEXT_SIZE = 50;
+    private static final int CURSOR_TEXT_SIZE = 40;
     private static final String SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_SELECTED_VIEW = "debug.view_debugger.color";
     private static final String SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_FOCUSED_VIEW = "debug.view_debugger.focus_color";
     private static final long SELECTED_VIEW_DEFAULT_HIGHLIGHT_COLOR = Color.WHITE;
@@ -49,6 +49,7 @@ public class DebugToolView extends View implements IDebugView {
     private int mTop;
     private int mOriginX;
     private int mOriginY;
+    private ViewDebugger mViewDebugger;
 
     public DebugToolView(Context context) {
         super(context);
@@ -111,6 +112,12 @@ public class DebugToolView extends View implements IDebugView {
 
         // draw cursor's location (x,y)
         String debugInfo = "(" + mCursorX + ", " + mCursorY + ")";
+        // 由于DebugToolView一定是全屏的View, 因此mCursorX, mCursorY就是屏幕坐标, 不需要转换
+        Integer pixelColor = mViewDebugger.getRgbOfScreenPixel(mCursorX, mCursorY);
+        if (pixelColor != null) {
+            debugInfo += String.format("  #%06X", (pixelColor & 0xFFFFFF));
+        }
+
         TextPaint largeTextPaint = new TextPaint(mTextPaint);
         largeTextPaint.setTextSize(CURSOR_TEXT_SIZE);
         canvas.drawText(debugInfo, 0, 50+CURSOR_TEXT_SIZE, largeTextPaint);
@@ -189,5 +196,9 @@ public class DebugToolView extends View implements IDebugView {
     @Override
     public View getView() {
         return this;
+    }
+
+    void setDebuggerPresenter(ViewDebugger presenter) {
+        mViewDebugger = presenter;
     }
 }

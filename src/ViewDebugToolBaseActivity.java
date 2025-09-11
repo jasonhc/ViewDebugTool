@@ -1,7 +1,5 @@
 package com.stv.debug;
 
-import org.jetbrains.annotations.Nullable;
-
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -12,6 +10,8 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
 import com.stv.deskplatform.BuildConfig;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author hechuan1 on 2021/1/27.
@@ -53,6 +53,7 @@ public abstract class ViewDebugToolBaseActivity extends FragmentActivity {
         }
 
         mViewDebugger = new ViewDebugger(debugToolView);
+        debugToolView.setDebuggerPresenter(mViewDebugger);
     }
 
     @Nullable

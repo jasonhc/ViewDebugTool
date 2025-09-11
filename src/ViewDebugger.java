@@ -1,6 +1,8 @@
 package com.stv.debug;
 
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.Log;
@@ -54,6 +56,8 @@ public class ViewDebugger {
     private int mMovingStep=10;
     @Nullable
     private View mCurrentShowingView;
+    @Nullable
+    private Bitmap mScreenBitmap;
 
     public ViewDebugger(@NonNull IDebugView debugView) {
         mDebugView = debugView;
@@ -88,6 +92,7 @@ public class ViewDebugger {
                 mSecretKeyIndex++;
                 if (mSecretKeyIndex >= mCurrentActiveSecretKeyCodes.length) {
                     enableDebugTool(true);
+                    getScreenPixels();
 
                     mSecretKeyIndex = 0;
                     mCurrentActiveSecretKeyCodes = null;
@@ -138,6 +143,9 @@ public class ViewDebugger {
                         break;
                     case KeyEvent.KEYCODE_0:
                         mDebugView.moveToOrigin();
+                        break;
+                    case KeyEvent.KEYCODE_MENU:
+                        getScreenPixels();
                         break;
                 }
             }
@@ -464,5 +472,39 @@ public class ViewDebugger {
         return pointOffChildView.x >= 0 && pointOffChildView.y >= 0
                 && pointOffChildView.x < view.getRight() - view.getLeft()
                 && pointOffChildView.y < view.getBottom() - view.getTop();
+    }
+
+    @Nullable
+    private Bitmap getScreenPixels() {
+        ViewParent viewParent = mDebugView.getView().getParent();
+        if (viewParent == null) {
+            return null;
+        }
+
+        mDebugView.getView().setVisibility(View.INVISIBLE);
+        Log.d(TAG, "Get pixels of screen");
+        Bitmap pixels = getPixelsOfView((ViewGroup) viewParent);
+        mDebugView.getView().setVisibility(View.VISIBLE);
+
+        return pixels;
+    }
+
+    private Bitmap getPixelsOfView(View view) {
+        if (mScreenBitmap == null) {
+            mScreenBitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        }
+        Canvas canvas = new Canvas(mScreenBitmap);
+        view.draw(canvas);
+
+        return mScreenBitmap;
+    }
+
+    @Nullable
+    public Integer getRgbOfScreenPixel(int x, int y) {
+        if (x >= 0 && y >= 0 && x < mScreenBitmap.getWidth() && y < mScreenBitmap.getHeight()) {
+            return mScreenBitmap.getPixel(x, y);
+        } else {
+            return null;
+        }
     }
 }
