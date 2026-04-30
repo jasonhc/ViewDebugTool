@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.os.SystemProperties;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.view.View;
@@ -16,9 +15,13 @@ import androidx.annotation.Nullable;
 
 public class DebugToolView extends View implements IDebugView {
     private static final int CURSOR_TEXT_SIZE = 40;
+
     private static final String SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_SELECTED_VIEW = "debug.view_debugger.color";
     private static final String SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_FOCUSED_VIEW = "debug.view_debugger.focus_color";
-    private static final long SELECTED_VIEW_DEFAULT_HIGHLIGHT_COLOR = Color.WHITE;
+    private static final String SYS_PROP_KEY_VIEW_INFO_TEXT_SIZE = "debug.view_debugger.text_size";
+
+    private static final int DEFAULT_VIEW_INFO_TEXT_SIZE = 20;
+    private static final int SELECTED_VIEW_DEFAULT_HIGHLIGHT_COLOR = Color.WHITE;
     private static final int FOCUSED_VIEW_DEFAULT_HIGHLIGHT_COLOR = Color.BLUE;
 
     private int mCursorX, mCursorY;
@@ -61,18 +64,16 @@ public class DebugToolView extends View implements IDebugView {
         mTextPaint = new TextPaint();
         mTextPaint.setFlags(Paint.ANTI_ALIAS_FLAG);
         mTextPaint.setTextAlign(Paint.Align.LEFT);
-        mTextPaint.setColor(Color.WHITE);
 
         mCursorPaint = new Paint();
         mCursorPaint.setColor(Color.RED);
         mCursorPaint.setStrokeWidth(1.0f);
 
         mViewHighlightPaint = new Paint();
-        mViewHighlightPaint.setColor(Color.WHITE);
         mViewHighlightPaint.setStrokeWidth(1.0f);
         mViewHighlightPaint.setStyle(Paint.Style.STROKE);
+
         mFocusedViewHighlightPaint = new Paint();
-        mFocusedViewHighlightPaint.setColor(FOCUSED_VIEW_DEFAULT_HIGHLIGHT_COLOR);
         mFocusedViewHighlightPaint.setStrokeWidth(1.0f);
         mFocusedViewHighlightPaint.setStyle(Paint.Style.STROKE);
     }
@@ -119,30 +120,50 @@ public class DebugToolView extends View implements IDebugView {
         }
 
         TextPaint largeTextPaint = new TextPaint(mTextPaint);
+        largeTextPaint.setColor(Color.WHITE);
         largeTextPaint.setTextSize(CURSOR_TEXT_SIZE);
         canvas.drawText(debugInfo, 0, 50+CURSOR_TEXT_SIZE, largeTextPaint);
 
+        mTextPaint.setTextSize(getViewInfoTextSize());
+
         // draw view's info & bound box
         if (!mViewInfo.isEmpty()) {
-            canvas.drawText(mViewInfo, mViewBounds.left, mViewBounds.top, mTextPaint);
+            mTextPaint.setColor(getHighlightColorOfSelectedView());
+            int viewInfoWidth = (int) mTextPaint.measureText(mViewInfo);
+            Point viewInfoLocation = getViewInfoLocation(mViewBounds, getViewInfoTextSize(), viewInfoWidth);
+            canvas.drawText(mViewInfo, viewInfoLocation.x, viewInfoLocation.y, mTextPaint);
             mViewHighlightPaint.setColor(getHighlightColorOfSelectedView());
             canvas.drawRect(mViewBounds, mViewHighlightPaint);
         }
 
         // draw focused view's info & bound box
         if (!mFocusedViewInfo.isEmpty()) {
-            canvas.drawText(mFocusedViewInfo, mFocusedViewBounds.left, mFocusedViewBounds.top, mTextPaint);
+            mTextPaint.setColor(getHighlightColorOfFocusedView());
+            int viewInfoWidth = (int) mTextPaint.measureText(mFocusedViewInfo);
+            Point viewInfoLocation = getViewInfoLocation(mFocusedViewBounds, getViewInfoTextSize(), viewInfoWidth);
+            canvas.drawText(mFocusedViewInfo, viewInfoLocation.x, viewInfoLocation.y, mTextPaint);
             mFocusedViewHighlightPaint.setColor(getHighlightColorOfFocusedView());
             canvas.drawRect(mFocusedViewBounds, mFocusedViewHighlightPaint);
         }
     }
 
+    @NonNull
+    private Point getViewInfoLocation(@NonNull Rect viewBounds, int textSize, int textWidth) {
+        int top = viewBounds.top < textSize ? viewBounds.top + textSize : viewBounds.top;
+        int left = viewBounds.left + textWidth < mRight ? viewBounds.left : mRight - textWidth;
+        return new Point(left, top);
+    }
+
+    private int getViewInfoTextSize() {
+        return (int) SystemPropertiesUtil.getLong(SYS_PROP_KEY_VIEW_INFO_TEXT_SIZE, DEFAULT_VIEW_INFO_TEXT_SIZE);
+    }
+
     private int getHighlightColorOfSelectedView() {
-        return (int) SystemProperties.getLong(SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_SELECTED_VIEW, SELECTED_VIEW_DEFAULT_HIGHLIGHT_COLOR);
+        return (int) SystemPropertiesUtil.getLong(SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_SELECTED_VIEW, SELECTED_VIEW_DEFAULT_HIGHLIGHT_COLOR);
     }
 
     private int getHighlightColorOfFocusedView() {
-        return (int) SystemProperties.getLong(SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_FOCUSED_VIEW, FOCUSED_VIEW_DEFAULT_HIGHLIGHT_COLOR);
+        return (int) SystemPropertiesUtil.getLong(SYS_PROP_KEY_HIGHLIGHT_COLOR_OF_FOCUSED_VIEW, FOCUSED_VIEW_DEFAULT_HIGHLIGHT_COLOR);
     }
 
     @Override
@@ -161,6 +182,28 @@ public class DebugToolView extends View implements IDebugView {
         }
 
         invalidate();
+    }
+
+    @Override
+    public void setCursorPos(int x, int y) {
+        int width = getWidth();
+        int height = getHeight();
+        if (x < 0) {
+            x = 0;
+        } else if (x >= width) {
+            x = width - 1;
+        }
+        if (y < 0) {
+            y = 0;
+        } else if (y >= height) {
+            y = height - 1;
+        }
+
+        if (mCursorX != x || mCursorY != y) {
+            mCursorX = x;
+            mCursorY = y;
+            invalidate();
+        }
     }
 
     @Override
