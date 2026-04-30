@@ -1,22 +1,20 @@
 package com.stv.debug;
 
+import android.app.Activity;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.FragmentActivity;
-
-import com.stv.deskplatform.BuildConfig;
-
-import org.jetbrains.annotations.Nullable;
+import androidx.annotation.Nullable;
 
 /**
  * @author hechuan1 on 2021/1/27.
  */
-public abstract class ViewDebugToolBaseActivity extends FragmentActivity {
+public abstract class ViewDebugToolBaseActivity extends Activity {
     private static final String TAG = "ViewDebugTool";
 
     private boolean mIsDebugViewAdded;
@@ -26,10 +24,6 @@ public abstract class ViewDebugToolBaseActivity extends FragmentActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
-        if (!BuildConfig.DEBUG) {
-            return;
-        }
 
         if (mIsDebugViewAdded) {
             return;
@@ -43,6 +37,14 @@ public abstract class ViewDebugToolBaseActivity extends FragmentActivity {
 
         DebugToolView debugToolView = new DebugToolView(this);
         debugToolView.setVisibility(View.INVISIBLE);
+        debugToolView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                Log.d(TAG, "DebugToolView onTouch event: " + event);
+                mViewDebugger.handleTouch(event);
+                return true;
+            }
+        });
 
         ViewGroup contentView = findContentView();
         if (contentView != null) {
@@ -75,10 +77,8 @@ public abstract class ViewDebugToolBaseActivity extends FragmentActivity {
     // Android Framework 传递的参数 event 一定是非空
     @Override
     public boolean dispatchKeyEvent(@SuppressWarnings("NullableProblems") @NonNull KeyEvent event) {
-        if (BuildConfig.DEBUG) {
-            if (mViewDebugger!=null && mViewDebugger.handleKey(event)) {
-                return true;
-            }
+        if (mViewDebugger!=null && mViewDebugger.handleKey(event)) {
+            return true;
         }
 
         return super.dispatchKeyEvent(event);

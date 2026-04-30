@@ -12,6 +12,8 @@ import androidx.annotation.NonNull;
 interface IDebugView {
     void moveCursor(int x, int y);
 
+    void setCursorPos(int x, int y);
+
     void moveToOrigin();
 
     void hightlightView(@NonNull Rect viewBounds, @NonNull String info);
@@ -23,4 +25,5 @@ interface IDebugView {
 
     @NonNull
     View getView();
+
 }
